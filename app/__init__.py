@@ -10,5 +10,6 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 api = Api(app)
 
-from app.resources.user import User
-api.add_resource(User, '/')
+from app.resources.users import Users
+from app import models
+api.add_resource(Users, '/')
