@@ -89,4 +89,4 @@ ENV/
 .ropeproject
 
 #static app 
-app/static
+app/static/*
