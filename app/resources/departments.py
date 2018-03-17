@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from flask_restful import Resource, reqparse, fields, marshal_with, abort
+from flask_restful import Resource, reqparse, fields, marshal_with, abort, marshal
 from flask_jwt_extended import jwt_required
 from app import db
 from app.models import Department
@@ -7,6 +7,9 @@ post_parser = reqparse.RequestParser()
 post_parser.add_argument('descripcion', location='json', required=True, help='descripción')
 post_parser.add_argument('user_id', location='json')
 post_parser.add_argument('parent_id', location='json')
+
+get_parser = reqparse.RequestParser()
+get_parser.add_argument('type', location='args', help='formato respuesta')
 
 user_fields = {
 		'id': fields.Integer,
@@ -28,15 +31,19 @@ department_fields = {
 
 class Departments(Resource):
 	@jwt_required
-	@marshal_with(department_fields)
 	def get(self, department_id=None):
+		args = get_parser.parse_args()
 		if(not department_id):
 			department = Department.query.all()
 		else:
 			department = Department.query.filter_by(id=department_id).first()
 			if(not department):
 				abort(404, message="Department {} doesn't exist".format(department_id))
-		return department
+		if(args.type=='list'):
+			data = []
+			for row in department:
+				data.append({'id':row.id, 'text':row.descripcion})
+		return marshal(department,department_fields)  if not args.type  else data
 	@jwt_required
 	def delete(self, department_id):
 		department = Department.query.filter_by(id=department_id).first()

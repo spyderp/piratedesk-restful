@@ -5,6 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
+from flask_mail import Mail
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -13,13 +14,15 @@ migrate = Migrate(app, db)
 api = Api(app)
 jwt = JWTManager(app)
 cors = CORS(app, resources={r"/*": {"origins": ConfigCors.origins}})
+mail = Mail(app)
 
 from app import models
 from app.resources.auth import Auth, TokenRefresh, LogoutAccess, LogoutRefresh
 from app.resources.clients import Clients
 from app.resources.departments import Departments
 from app.resources.rols import Rols
-from app.resources.users import Users
+from app.resources.users import Users, Reset_password_request, Reset_password
+from app.resources.files import Files
 
 
 @jwt.token_in_blacklist_loader
@@ -31,8 +34,11 @@ def check_if_token_in_blacklist(decrypted_token):
 api.add_resource(Auth, '/login')
 api.add_resource(Clients, '/clients', '/clients/<client_id>')
 api.add_resource(Departments, '/departments', '/departments/<department_id>')
-api.add_resource(Rols, '/rols', '/rols/<rol_id>')
-api.add_resource(Users, '/users', '/users/<user_id>')
+api.add_resource(Files, '/files', '/files/<filename>')
 api.add_resource(LogoutAccess, '/logout/access')
 api.add_resource(LogoutRefresh, '/logout/refresh')
+api.add_resource(Reset_password, '/reset/token/<token>')
+api.add_resource(Reset_password_request, '/reset/password')
+api.add_resource(Rols, '/rols', '/rols/<rol_id>')
 api.add_resource(TokenRefresh, '/token/refresh')
+api.add_resource(Users, '/users', '/users/<user_id>')

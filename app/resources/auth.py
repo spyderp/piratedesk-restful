@@ -2,7 +2,8 @@ from flask_restful import Resource, reqparse, fields, marshal_with, abort
 from flask_jwt_extended import (create_access_token, create_refresh_token, jwt_required, jwt_refresh_token_required, get_jwt_identity, get_raw_jwt)
 from app import db
 from app.models import User, RevokedToken
-from datetime import datetime
+from datetime import datetime,timedelta
+import time
 
 post_parser = reqparse.RequestParser()
 post_parser.add_argument('username', location='json', required=True)
@@ -14,21 +15,24 @@ class Auth(Resource):
 		if (user):
 			if(user.check_password(args.password)):
 				last = user.ultimo_acceso
-				user.ultimo_acceso = datetime.utcnow
+				user.ultimo_acceso = datetime.utcnow()
 				db.session.commit()
 				access_token = create_access_token(identity = args.username)
 				refresh_token = create_refresh_token(identity = args.username)
+				expiredToken = datetime.now() + timedelta(minutes=15)
 				return {
 					'user':{
 						'id': user.id,
 						'nombre': user.nombre,
 						'apellido': user.apellido,
 						'email': user.email,
-						'ultimo_acceso': last,
+						'ultimo_acceso': last.strftime("%d/%m/%Y %H:%M:%S"),
 						'puntaje': user.puntaje,
+                        'privileges':user.rols.privileges
 					},
 					'access_token':access_token,
-					'refresh_token':refresh_token
+					'refresh_token':refresh_token,
+					'expired_token': time.mktime(expiredToken.timetuple())
 				}, 200
 		abort(404, message="You username {} and/or password {} is incorrect, please try again".format(args.username, args.password))
 
@@ -37,7 +41,11 @@ class TokenRefresh(Resource):
     def post(self):
         current_user = get_jwt_identity()
         access_token = create_access_token(identity = current_user)
-        return {'access_token': access_token}
+        expiredToken = datetime.now() + timedelta(minutes=15)
+        return {
+        	'access_token': access_token,
+        	'expired_token': time.mktime(expiredToken.timetuple())
+        }
 
 
 class LogoutAccess(Resource):

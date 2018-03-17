@@ -1,6 +1,11 @@
+import os
+from app import app
 from app import db
 from datetime import datetime
+from time import time
+import jwt 
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 
 department_user = db.Table('department_user',
 	db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
@@ -51,6 +56,24 @@ class File(db.Model):
 	modificado = db.Column(db.DateTime, onupdate=datetime.utcnow)
 	trophys    = db.relationship('Trophy')
 	users      = db.relationship('User',    backref='avatar')
+	
+	def set_file(self, file):
+		filename = secure_filename(file.filename)
+		file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+		uri = app.config['UPLOAD_FOLDER']+'/'+filename
+		self.uri      = uri
+		self.filename = filename
+		self.type     = file.content_type
+		self.size     = file.content_length
+
+class ForgotPassword(db.Model):
+	id       = db.Column(db.Integer, primary_key=True)
+	token    = db.Column(db.String(120))
+	password = db.Column(db.String(12))
+	expired  = db.Column(db.Integer)
+	status   = db.Column(db.Boolean, default=1)
+	user_id  = db.Column(db.Integer, db.ForeignKey('user.id'))
+	users    = db.relationship('User')
 
 class Knowledge(db.Model):
 	id            = db.Column(db.Integer, primary_key=True)
@@ -98,6 +121,7 @@ class Rol(db.Model):
 	id          = db.Column(db.Integer, primary_key=True)
 	descripcion = db.Column(db.String(15), nullable=False)
 	privileges  = db.Column(db.String(1024))
+	users     = db.relationship('User') 
 
 class State(db.Model):
 	id          = db.Column(db.Integer, primary_key=True)
@@ -149,7 +173,8 @@ class User(db.Model):
 	file_id	      = db.Column(db.Integer, db.ForeignKey('file.id'), default=1)
 	# assignments 	= db.relationship('Assignment')
 	#knowledges 		= db.relationship('Knowledge')
-	tickets 				= db.relationship('Ticket')
+	tickets 		= db.relationship('Ticket')
+	rols 		    = db.relationship('Rol')
 	departments		= db.relationship('Department', secondary=department_user , lazy='subquery', backref=db.backref('department_user', lazy=True))
 	
 	def __repr__(self):
@@ -159,3 +184,6 @@ class User(db.Model):
 
 	def check_password(self, password):
 		return check_password_hash(self.password, password)
+	
+	def get_creado(self):
+		return datetime.strftime(self.creado, '%d/%m/%Y')
