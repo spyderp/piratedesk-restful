@@ -31,9 +31,17 @@ post_parser.add_argument(
 	location='json', 
 	help='Correo eléctronico',
 )
+post_parser.add_argument(
+	'calendar_id', 
+	location='json', 
+	required=True,
+)
 get_parser = reqparse.RequestParser()
 get_parser.add_argument('type', location='args', help='formato respuesta')
 
+calendar_fiels = {
+	'descripcion':fields.String
+}
 client_fields = {
 	'id': fields.Integer,
 	'nombre': fields.String,
@@ -42,6 +50,8 @@ client_fields = {
 	'telefono': fields.String,
 	'celular': fields.String,
 	'email': fields.String,
+	'calendar_id':fields.Integer,
+	'calendars':fields.Nested(calendar_fiels)
 }
 
 class Clients(Resource):
@@ -79,7 +89,8 @@ class Clients(Resource):
 			direccion = args.direccion,
 			telefono 	= args.telefono,
 			celular  	= args.celular,
-			email  		= args.email
+			email  		= args.email,
+			calendar_id = args.calendar_id   
 		)
 		db.session.add(client)
 		db.session.commit()
@@ -99,6 +110,7 @@ class Clients(Resource):
 		client.telefono 	 = args.telefono,
 		client.celular  	 = args.celular,
 		client.email  		 = args.email
+		client.calendar_id = args.calendar_id   
 		db.session.commit()
 		return client,201
 

@@ -16,11 +16,9 @@ file_fields = {
 }
 
 class Files(Resource):
-	@jwt_required
 	def get(self, filename):
 		return send_from_directory(app.config['UPLOAD_FOLDER'],filename)
 	
-	@jwt_required
 	@marshal_with(file_fields)
 	def post(self):
 		file= request.files['file']

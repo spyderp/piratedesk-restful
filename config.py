@@ -8,14 +8,14 @@ class Config(object):
 	JWT_SECRET_KEY = 'lodsf9032o4jkdsfguj8j8bqw34r5t9b0q32'
 	JWT_BLACKLIST_ENABLED=False
 	JWT_BLACKLIST_TOKEN_CHECKS=['access', 'refresh'],
-	MAIL_SERVER='zimbra.meduca.gob.pa'
+	MAIL_SERVER='smtp.office365.com'
 	MAIL_PORT=587
 	MAIL_USE_TLS=1
-	MAIL_USERNAME='ricardo.portillo'
-	MAIL_PASSWORD='RgpR987?'
+	MAIL_USERNAME='ricardo.portillo@meduca.gob.pa'
+	MAIL_PASSWORD='MestaEP159?'
 	UPLOAD_FOLDER = '/home/spyder/Workspaces/piratedesk-restful/app/static/files'
 	ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
-
+	ADMINS = ['spyderp@gmail.com']
 
 class ConfigCors:
 	origins = '*'

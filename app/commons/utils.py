@@ -41,6 +41,11 @@ def token_generator():
 	allchar = string.ascii_letters + string.digits + str(t)
 	return hashlib.md5(allchar).hexdigest()
 
+#Field format
 class DateTimeLatinFormat(fields.Raw):
+    def format(self, value):
+        return datetime.strftime(value,'%d/%m/%Y %H:%I:%S')
+
+class DaysWeek(fields.Raw):
     def format(self, value):
         return datetime.strftime(value,'%d/%m/%Y %H:%I:%S')

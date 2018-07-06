@@ -1,3 +1,5 @@
+import os, logging
+from logging.handlers import SMTPHandler, RotatingFileHandler
 from flask import Flask
 from flask_restful import Api
 from config import Config, ConfigCors
@@ -16,29 +18,39 @@ jwt = JWTManager(app)
 cors = CORS(app, resources={r"/*": {"origins": ConfigCors.origins}})
 mail = Mail(app)
 
-from app import models
-from app.resources.auth import Auth, TokenRefresh, LogoutAccess, LogoutRefresh
-from app.resources.clients import Clients
-from app.resources.departments import Departments
-from app.resources.rols import Rols
-from app.resources.users import Users, Reset_password_request, Reset_password
-from app.resources.files import Files
+from app.errors import bp as errors_bp
+app.register_blueprint(errors_bp)
+
+if not app.debug:
+	if app.config['MAIL_SERVER']:
+		auth = None
+		if app.config['MAIL_USERNAME'] or app.config['MAIL_PASSWORD']:
+			auth = (app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
+		secure = None
+		if app.config['MAIL_USE_TLS']:
+			secure = ()
+		mail_handler = SMTPHandler(
+			mailhost=(app.config['MAIL_SERVER'], app.config['MAIL_PORT']),
+			fromaddr='no-reply@' + app.config['MAIL_SERVER'],
+			toaddrs=app.config['ADMINS'], subject='Fallos Piratedesk',
+			credentials=auth, secure=secure)
+		mail_handler.setLevel(logging.ERROR)
+		app.logger.addHandler(mail_handler)
+	if not os.path.exists('logs'):
+		os.mkdir('logs')
+	file_handler = RotatingFileHandler('logs/piratedesk_api.log', maxBytes=10240,backupCount=10)
+	file_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'))
+	file_handler.setLevel(logging.INFO)
+	app.logger.addHandler(file_handler)
+	app.logger.setLevel(logging.INFO)
+	app.logger.info('PIRATEDESK API startup')
+
+from app import models, routes
 
 
 @jwt.token_in_blacklist_loader
 def check_if_token_in_blacklist(decrypted_token):
-    jti = decrypted_token['jti']
-    return models.RevokedToken.is_jti_blacklisted(jti)
+	jti = decrypted_token['jti']
+	return models.RevokedToken.is_jti_blacklisted(jti)
 
 
-api.add_resource(Auth, '/login')
-api.add_resource(Clients, '/clients', '/clients/<client_id>')
-api.add_resource(Departments, '/departments', '/departments/<department_id>')
-api.add_resource(Files, '/files', '/files/<filename>')
-api.add_resource(LogoutAccess, '/logout/access')
-api.add_resource(LogoutRefresh, '/logout/refresh')
-api.add_resource(Reset_password, '/reset/token/<token>')
-api.add_resource(Reset_password_request, '/reset/password')
-api.add_resource(Rols, '/rols', '/rols/<rol_id>')
-api.add_resource(TokenRefresh, '/token/refresh')
-api.add_resource(Users, '/users', '/users/<user_id>')

@@ -4,7 +4,7 @@ from flask_restful import Resource, reqparse, fields, marshal_with, abort
 from flask_jwt_extended import jwt_required
 from app import db
 from app.models import User, File, ForgotPassword
-from app.commons import send_email, password_generator, token_generator, DateTimeLatinFormat
+from app.commons import send_email, password_generator, token_generator, DateTimeLatinFormat, roles_required
 from time import time
 
 post_parser = reqparse.RequestParser()
@@ -26,15 +26,16 @@ user_fields = {
 	'nombre': fields.String,
 	'apellido': fields.String,
 	'email': fields.String,
-	'activo': fields.String,
+	'activo': fields.Integer,
 	'creado': DateTimeLatinFormat(),
-	'modificado': fields.DateTime(),
-	'ultimo_acceso': fields.DateTime(),
+	'modificado': DateTimeLatinFormat(),
+	'ultimo_acceso': DateTimeLatinFormat(),
 	'puntaje': fields.Integer,
 }
 class Users(Resource):
 	@jwt_required
 	@marshal_with(user_fields)
+	@roles_required('administrador', 'agente')
 	def get(self, user_id=None):
 		if(not user_id):
 			user = User.query.all()
@@ -43,8 +44,10 @@ class Users(Resource):
 			if(not user):
 				abort(404, message="User {} doesn't exist".format(user_id))
 		return user
+		
 	@jwt_required
 	@marshal_with(user_fields)
+	@roles_required('administrador', 'agente')
 	def post(self):
 		args = post_parser.parse_args()
 		if(not args.username or  not args.password):
@@ -57,12 +60,16 @@ class Users(Resource):
 			rol_id = args.rol_id,
 		)
 		user.set_password(args.password)
-		db.session.add(user)
-		db.session.commit()
-		return user,201
+		try:
+			db.session.add(user)
+			db.session.commit()
+			return user,201
+		except AssertionError as exception_message:
+			abort(400, message='Error:{}'.format(exception_message))
 
 	@jwt_required
 	@marshal_with(user_fields)
+	@roles_required('administrador', 'agente')
 	def put(self, user_id):
 		args = put_parser.parse_args()
 		user = User.query.filter_by(id=user_id).first()
@@ -78,9 +85,14 @@ class Users(Resource):
 		user.rol_id = args.rol_id
 		if(args.password):
 			user.set_password(args.password)
-		db.session.commit()
-		return user,201
+		try:
+			db.session.commit()
+			return user,201
+		except AssertionError as exception_message:
+			abort(400, message='Error:{}'.format(exception_message))
 
+	@jwt_required
+	@roles_required('administrador', 'agente')
 	def patch(self, user_id):
 		args = patch_parser.parse_args()
 		user = User.query.filter_by(id=user_id).first()
@@ -89,8 +101,11 @@ class Users(Resource):
 		user.email = args.email,
 		if(args.password):
 			user.set_password(args.password)
-		db.session.commit()
-		return 201
+		try:
+			db.session.commit()
+			return user,201
+		except AssertionError as exception_message:
+			abort(400, message='Error:{}'.format(exception_message))
 
 resetpost_parser = reqparse.RequestParser()
 resetpost_parser.add_argument('email', location='json',  help='Correo Electronico')
