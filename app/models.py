@@ -9,6 +9,10 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import validates
+client_user = db.Table('client_user',
+	db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
+	db.Column('client_id', db.Integer, db.ForeignKey('client.id'), primary_key=True)
+) 
 department_user = db.Table('department_user',
 	db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
 	db.Column('department_id', db.Integer, db.ForeignKey('department.id'), primary_key=True)
@@ -17,12 +21,12 @@ calendar_festive = db.Table('calendar_festive',
 	db.Column('calendar_id', db.Integer, db.ForeignKey('calendar.id'), primary_key=True),
 	db.Column('festive_id', db.Integer, db.ForeignKey('festive.id'), primary_key=True)
 ) 
-# class Assigment(db.Model):
-# 	id 			 	= db.Column(db.Integer, primary_key=True)
-# 	abierto 		= db.Column(db.Integer)
-# 	modificado		= db.Column(db.DateTime, default=datetime.utcnow)
-# 	user_id 		= db.Column(db.Integer, ForeignKey('user.id'))
-# 	ticket_id	= db.Column(db.Integer, db.ForeignKey('ticket.id'))
+class Assigment(db.Model):
+	id 			 	= db.Column(db.Integer, primary_key=True)
+	abierto 		= db.Column(db.Integer)
+	creado          = db.Column(db.DateTime, default=datetime.utcnow)
+	user_id 		= db.Column(db.Integer, db.ForeignKey('user.id'))
+	ticket_id	= db.Column(db.Integer, db.ForeignKey('ticket.id'))
 
 class Calendar(db.Model):
 	id            = db.Column(db.Integer, primary_key=True)
@@ -108,6 +112,10 @@ class ForgotPassword(db.Model):
 	user_id  = db.Column(db.Integer, db.ForeignKey('user.id'))
 	users    = db.relationship('User')
 
+class Key(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	word = db.Column(db.String(60)) 
+
 class Knowledge(db.Model):
 	id            = db.Column(db.Integer, primary_key=True)
 	title         = db.Column(db.String(100), nullable=False, unique=True)
@@ -172,8 +180,11 @@ class Template(db.Model):
 class Ticket(db.Model):
 	id            = db.Column(db.Integer, primary_key=True)
 	titulo        = db.Column(db.String(100), nullable=False)
-	content	      = db.Column(db.Text)
+	content	      = db.Column(db.Text, nullable=False)
 	keys          = db.Column(db.String(100))
+	email         = db.Column(db.String(60), nullable=False)
+	telefono   	  = db.Column(db.String(30))
+	celular    	  = db.Column(db.String(12))
 	creado        = db.Column(db.DateTime, default=datetime.utcnow)
 	modificado    = db.Column(db.DateTime, onupdate=datetime.utcnow)
 	client_id     = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=True)
@@ -210,19 +221,20 @@ class User(db.Model):
 	puntaje	      = db.Column(db.Integer, default=0)
 	rol_id 	      = db.Column(db.Integer, db.ForeignKey('rol.id'))
 	file_id	      = db.Column(db.Integer, db.ForeignKey('file.id'), default=1)
-	# assignments 	= db.relationship('Assignment')
+	Assigments 	= db.relationship('Assigment')
 	#knowledges 		= db.relationship('Knowledge')
 	tickets 		= db.relationship('Ticket')
 	rols 		    = db.relationship('Rol')
+	clients		= db.relationship('Client', secondary=client_user , lazy='subquery', backref=db.backref('client_user', lazy=True))
 	departments		= db.relationship('Department', secondary=department_user , lazy='subquery', backref=db.backref('department_user', lazy=True))
 	
 	@validates('username')
 	def validate_username(self, key, username):
 		if not username:
 			raise AssertionError('No username provided')
-		if User.query.filter(User.username == username).first():
+		if User.query.filter(User.username == username).first() and not self.id: 
 			raise AssertionError('El usuario esta en uso')
-		if len(username) < 5 or len(username) > 20:
+		if len(self.username) < 5 or len(self.username) > 20:
 			raise AssertionError('El usuario debe tener entre 5 y 20 caracteres')
 		return username
 
@@ -231,11 +243,22 @@ class User(db.Model):
 		if not email:
 			raise AssertionError('No email provided')
 
-		if not re.match("[^@]+@[^@]+\.[^@]+", email):
+		if not re.match("[^@]+@[^@]+\.[^@]+", self.email):
 			raise AssertionError('correo no valido')
 
 		return email
 
+	# @validates('password')
+	# def validate_password(self, key, password):
+	# 	if not password:
+	# 		raise AssertionError('Password not provided')
+
+	# 	# if not re.match('\d.*[A-Z]|[0-9].*\d', password):
+	# 	# 	raise AssertionError('Password must contain 1 capital letter and 1 number')
+
+	# 	if len(password) < 8 or len(password) > 24:
+	# 		raise AssertionError('La contraseña debe ser entre 8 y 24 caracteres')
+	# 	return password
 
 	def __repr__(self):
 		return '<User %r %r>' % (self.nombre, self.apellido)
@@ -243,14 +266,6 @@ class User(db.Model):
 		return datetime.strftime(self.creado, '%d/%m/%Y')
 
 	def set_password(self, password):
-		if not password:
-			raise AssertionError('Password not provided')
-
-		if not re.match('\d.*[A-Z]|[0-9].*\d', password):
-			raise AssertionError('Password must contain 1 capital letter and 1 number')
-
-		if len(password) < 8 or len(password) > 24:
-			raise AssertionError('La contraseña debe ser entre 8 y 24 caracteres')
 		self.password = generate_password_hash(password)
 
 	def check_password(self, password):

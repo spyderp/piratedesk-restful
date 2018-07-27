@@ -90,3 +90,5 @@ ENV/
 
 #static app 
 app/static/*
+
+config.py

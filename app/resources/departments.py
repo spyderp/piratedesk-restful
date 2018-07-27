@@ -3,6 +3,8 @@ from flask_restful import Resource, reqparse, fields, marshal_with, abort, marsh
 from flask_jwt_extended import jwt_required
 from app import db
 from app.models import Department
+from app.commons import roles_required
+
 post_parser = reqparse.RequestParser()
 post_parser.add_argument('descripcion', location='json', required=True, help='descripción')
 post_parser.add_argument('user_id', location='json')
@@ -30,7 +32,6 @@ department_fields = {
 }
 
 class Departments(Resource):
-	@jwt_required
 	def get(self, department_id=None):
 		args = get_parser.parse_args()
 		if(not department_id):
@@ -44,7 +45,9 @@ class Departments(Resource):
 			for row in department:
 				data.append({'id':row.id, 'text':row.descripcion})
 		return marshal(department,department_fields)  if not args.type  else data
+	
 	@jwt_required
+	@roles_required('administrador', 'agente')
 	def delete(self, department_id):
 		department = Department.query.filter_by(id=department_id).first()
 		if(not department):
@@ -53,6 +56,7 @@ class Departments(Resource):
 		db.session.commit()
 		return '', 204
 	@jwt_required
+	@roles_required('administrador', 'agente')
 	@marshal_with(department_fields)
 	def post(self):
 		args = post_parser.parse_args()
@@ -65,6 +69,7 @@ class Departments(Resource):
 		db.session.commit()
 		return department,201
 	@jwt_required
+	@roles_required('administrador', 'agente')
 	@marshal_with(department_fields)
 	def put(self, department_id):
 		args = post_parser.parse_args()

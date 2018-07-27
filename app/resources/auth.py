@@ -1,7 +1,7 @@
 from flask_restful import Resource, reqparse, fields, marshal_with, abort
 from flask_jwt_extended import (create_access_token, create_refresh_token, jwt_required, jwt_refresh_token_required, get_jwt_identity, get_raw_jwt)
 from app import db
-from app.models import User, RevokedToken
+from app.models import User, RevokedToken, Client
 from datetime import datetime,timedelta
 import time
 
@@ -35,6 +35,33 @@ class Auth(Resource):
 					'expired_token': time.mktime(expiredToken.timetuple())
 				}, 200
 		abort(404, message="You username {} and/or password {} is incorrect, please try again".format(args.username, args.password))
+
+public_parser = reqparse.RequestParser()
+public_parser.add_argument('clienteID', location='json', required=True)
+public_parser.add_argument('username', location='json', required=True)
+public_parser.add_argument('password', location='json',  required=True)
+class AuthPublic(Resource):
+    def post(self):
+        args = public_parser.parse_args()
+        user = User.query.join(User.clients).filter(User.username==args.username, User.activo==1, Client.id==args.clienteID).first()
+        if (user):
+            if(user.check_password(args.password)):
+                last = user.ultimo_acceso
+                user.ultimo_acceso = datetime.utcnow()
+                db.session.commit()
+                return {
+                    'user':{
+                        'id': user.id,
+                        'nombre': user.nombre,
+                        'apellido': user.apellido,
+                        'email': user.email,
+                        'ultimo_acceso': last.strftime("%d/%m/%Y %H:%M:%S") if last else '',
+                        'client_id':user.clients[0].id,
+                        'client_nombre':user.clients[0].nombre,
+                        'client_direccion':user.clients[0].direccion,
+                    },
+                }, 200
+        abort(404, message="You username {} and/or password {} is incorrect, please try again".format(args.username, args.password))
 
 class TokenRefresh(Resource):
     @jwt_refresh_token_required

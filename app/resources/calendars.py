@@ -95,9 +95,7 @@ class Calendars(Resource):
 		for row in result.festives:
 			f = Festive.query.filter_by(id=row.id).first()
 			result.festives.remove(f)
-		print args.festives
 		for festive_id in args.festives:
-			print festive_id
 			f = Festive.query.filter_by(id=festive_id).first()
 			result.festives.append(f)
 		db.session.commit()

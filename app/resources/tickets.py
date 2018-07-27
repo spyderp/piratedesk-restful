@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
+from flask import render_template
 from flask_restful import Resource, reqparse, fields, marshal_with, abort, marshal
 from flask_jwt_extended import jwt_required
 from app import db
-from app.models import Ticket
-from app.commons import roles_required, DateTimeLatinFormat
+from app.models import Ticket, Key
+from app.commons import roles_required, DateTimeLatinFormat, send_email
+from config import Config
 import json
 post_parser = reqparse.RequestParser()
 post_parser.add_argument(
@@ -15,6 +17,18 @@ post_parser.add_argument(
 	'content', 
 	location='json', required=True,
 	help='contenido',
+)
+post_parser.add_argument(
+	'email', 
+	location='json', required=True,
+)
+post_parser.add_argument(
+	'telefono', 
+	location='json', 
+)
+post_parser.add_argument(
+	'celular', 
+	location='json', 
 )
 post_parser.add_argument(
 	'keys', 
@@ -73,6 +87,9 @@ ticket_fields = {
 	'id': fields.Integer,
 	'titulo': fields.String,
 	'keys': fields.String,
+	'email': fields.String,
+	'telefono': fields.String,
+	'celular': fields.String,
 	'content': fields.String,
 	'creado':DateTimeLatinFormat,
 	'modificado':DateTimeLatinFormat,
@@ -122,7 +139,6 @@ class Tickets(Resource):
 				abort(404, message="Ticket {} doesn't exist".format(ticket_id))
 		return ticket
 
-	@jwt_required
 	def delete(self, client_id):
 		ticket = Ticket.query.filter_by(id=ticket_id).first()
 		if(not ticket):
@@ -131,25 +147,36 @@ class Tickets(Resource):
 		db.session.commit()
 		return '', 204
 
-	@jwt_required
 	@marshal_with(ticket_fields)
 	def post(self):
 		args = post_parser.parse_args()
+		keys = Key.query.all()
+		result = ''
+		for row in keys:
+			if(args.content.find(row.word) > -1):
+				result = result + ' ' + row.word
 		ticket = Ticket(
 			titulo        = args.titulo,
 			content       = args.content,
-			key           = args.key,
+			keys          = result,
+			email         = args.email,
+			telefono      = args.telefono,
+			celular       = args.celular,
 			client_id     = args.client_id,
 			department_id = args.department_id,
 			priority_id   = args.priority_id,
-			state_id      = args.state_id,
+			state_id      = 1,
 			user_id	      = args.user_id
 		)
 		db.session.add(ticket)
 		db.session.commit()
+		text_body  = render_template('email/new_ticket.txt',ticket=ticket)
+		html_body=render_template('email/new_ticket.html',ticket=ticket)
+		#send_email("[{}] Nueva solicitud".format(Config.SITENAME),Config.MAILSYS,[args.email],text_body, html_body)
 		return ticket,201
 
 	@jwt_required
+	@roles_required('administrador', 'agente')
 	@marshal_with(ticket_fields)
 	def put(self, ticket_id):
 		args = post_parser.parse_args()
@@ -160,6 +187,8 @@ class Tickets(Resource):
 			abort(404, message="El nombre es requerido no puede esta vacio")
 		ticket.titulo        = args.titulo
 		ticket.content       = args.content
+		ticket.telefono      = args.telefono,
+		ticket.celular       = args.celular,
 		ticket.client_id     = args.client_id
 		ticket.department_id = args.department_id
 		ticket.priority_id   = args.priority_id

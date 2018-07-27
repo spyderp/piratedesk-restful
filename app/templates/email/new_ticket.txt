@@ -1,0 +1,2 @@
+Nueva solicitud \n\n
+Se ha creado una nueva solicitud con el #{{"%05d"|format(ticket.id)}}

@@ -1,5 +1,5 @@
 from app import api
-from app.resources.auth import Auth, TokenRefresh, LogoutAccess, LogoutRefresh
+from app.resources.auth import Auth, AuthPublic, TokenRefresh, LogoutAccess, LogoutRefresh
 from app.resources.calendars import Calendars
 from app.resources.categories import Categories
 from app.resources.clients import Clients
@@ -17,6 +17,7 @@ from app.resources.trophies import Trophies
 from app.resources.users import Users, Reset_password_request, Reset_password
 
 api.add_resource(Auth, '/login')
+api.add_resource(AuthPublic, '/login_public')
 api.add_resource(Calendars, '/calendars', '/calendars/<calendar_id>')
 api.add_resource(Categories, '/categories', '/categories/<category_id>')
 api.add_resource(Clients, '/clients', '/clients/<client_id>')

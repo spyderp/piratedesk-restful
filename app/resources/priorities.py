@@ -24,7 +24,8 @@ post_parser.add_argument(
 	 type=int,
 	location='json'
 )
-
+get_parser = reqparse.RequestParser()
+get_parser.add_argument('type', location='args', help='formato respuesta')
 #data fields: datos a retornar
 data_fields = {
 	'id': fields.Integer,
@@ -36,20 +37,24 @@ data_fields = {
 
 
 class Priorities(Resource):
-	#@jwt_required
-	#@roles_required('administrador', 'agente')
-	@marshal_with(data_fields)
+	@jwt_required
+	@roles_required('administrador', 'agente')
 	def get(self, priority_id=None):
+		args = get_parser.parse_args()
 		if(not priority_id):
 			result = Priority.query.all()
 		else:
 			result = Priority.query.filter_by(id=priority_id).first()
 			if(not result):
 				abort(404, message="Priority {} doesn't exist".format(priority_id))
-		return result
+		if(args.type=='list'):
+			data = []
+			for row in result:
+				data.append({'id':row.id, 'text':row.descripcion})
+		return marshal(result,data_fields)  if not args.type  else data
 
-	#@jwt_required
-	#@roles_required('administrador', 'agente')
+	@jwt_required
+	@roles_required('administrador', 'agente')
 	def delete(self, priority_id):
 		result = Priority.query.filter_by(id=priority_id).first()
 		if(not result):
@@ -58,8 +63,8 @@ class Priorities(Resource):
 		db.session.commit()
 		return '', 204
 
-	#@jwt_required
-	#@roles_required('administrador', 'agente')
+	@jwt_required
+	@roles_required('administrador', 'agente')
 	@marshal_with(data_fields)
 	def post(self):
 		args = post_parser.parse_args()
@@ -73,8 +78,8 @@ class Priorities(Resource):
 		db.session.commit()
 		return newData,201
 
-	#@jwt_required
-	#@roles_required('administrador', 'agente')
+	@jwt_required
+	@roles_required('administrador', 'agente')
 	@marshal_with(data_fields)
 	def put(self, priority_id):
 		args = post_parser.parse_args()
