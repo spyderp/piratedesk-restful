@@ -21,9 +21,12 @@ calendar_festive = db.Table('calendar_festive',
 	db.Column('calendar_id', db.Integer, db.ForeignKey('calendar.id'), primary_key=True),
 	db.Column('festive_id', db.Integer, db.ForeignKey('festive.id'), primary_key=True)
 ) 
+
 class Assigment(db.Model):
 	id 			 	= db.Column(db.Integer, primary_key=True)
-	abierto 		= db.Column(db.Integer)
+	abierto 		= db.Column(db.Boolean, default=True)
+	supervisor 		= db.Column(db.Boolean, default=False)
+	edit 			= db.Column(db.Boolean, default=False)
 	creado          = db.Column(db.DateTime, default=datetime.utcnow)
 	user_id 		= db.Column(db.Integer, db.ForeignKey('user.id'))
 	ticket_id	= db.Column(db.Integer, db.ForeignKey('ticket.id'))
@@ -198,6 +201,7 @@ class Ticket(db.Model):
 	states        = db.relationship('State')
 	users         = db.relationship('User')
 	messages      = db.relationship('Message')
+	assigments 	  = db.relationship('Assigment')
 
 class Trophy(db.Model):
 	id          = db.Column(db.Integer, primary_key=True)
@@ -221,12 +225,12 @@ class User(db.Model):
 	puntaje	      = db.Column(db.Integer, default=0)
 	rol_id 	      = db.Column(db.Integer, db.ForeignKey('rol.id'))
 	file_id	      = db.Column(db.Integer, db.ForeignKey('file.id'), default=1)
-	Assigments 	= db.relationship('Assigment')
+	Assigments 	  = db.relationship('Assigment')
 	#knowledges 		= db.relationship('Knowledge')
-	tickets 		= db.relationship('Ticket')
-	rols 		    = db.relationship('Rol')
-	clients		= db.relationship('Client', secondary=client_user , lazy='subquery', backref=db.backref('client_user', lazy=True))
-	departments		= db.relationship('Department', secondary=department_user , lazy='subquery', backref=db.backref('department_user', lazy=True))
+	tickets 	  = db.relationship('Ticket')
+	rols 		  = db.relationship('Rol')
+	clients		  = db.relationship('Client', secondary=client_user , lazy='subquery', backref=db.backref('client_user', lazy=True))
+	departments	  = db.relationship('Department', secondary=department_user , lazy='subquery', backref=db.backref('department_user', lazy=True))
 	
 	@validates('username')
 	def validate_username(self, key, username):

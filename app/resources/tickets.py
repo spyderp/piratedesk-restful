@@ -3,7 +3,7 @@ from flask import render_template
 from flask_restful import Resource, reqparse, fields, marshal_with, abort, marshal
 from flask_jwt_extended import jwt_required
 from app import db
-from app.models import Ticket, Key
+from app.models import Ticket, Key, Assigment
 from app.commons import roles_required, DateTimeLatinFormat, send_email
 from config import Config
 import json
@@ -54,6 +54,13 @@ get_parser = reqparse.RequestParser()
 get_parser.add_argument('find', location='args', help='for find')
 get_parser.add_argument('page', location='args', help='paging', type=int)
 get_parser.add_argument('order', location='args', help='order')
+
+patch_parser = reqparse.RequestParser()
+patch_parser.add_argument('type', location='args', type=int)
+patch_parser.add_argument('user_id', location='json', type=int)
+patch_parser.add_argument('edit', location='json', type=int)
+patch_parser.add_argument('state_id', location='json', type=int)
+
 client_fields = {
 	'id': fields.Integer,
 	'nombre': fields.String,
@@ -83,6 +90,14 @@ user_fields = {
 	'apellido': fields.String,
 	'email': fields.String,
 }
+assigment_fields = {
+	'id': fields.Integer,
+	'abierto': fields.Boolean,
+	'supervisor': fields.Boolean,
+	'edit': fields.Boolean,
+	'creado': fields.DateTime(),
+	'user_id': fields.Integer,
+}
 ticket_fields = {
 	'id': fields.Integer,
 	'titulo': fields.String,
@@ -91,8 +106,8 @@ ticket_fields = {
 	'telefono': fields.String,
 	'celular': fields.String,
 	'content': fields.String,
-	'creado':DateTimeLatinFormat,
-	'modificado':DateTimeLatinFormat,
+	'creado': fields.DateTime(),
+	'modificado': fields.DateTime(),
 	'client_id':fields.Integer,
 	'department_id':fields.Integer,
 	'state_id':fields.Integer,
@@ -102,6 +117,7 @@ ticket_fields = {
 	'priorities':fields.Nested(priority_fields),
 	'states':fields.Nested(state_fields),
 	'users':fields.Nested(user_fields),
+	'assigments':fields.Nested(assigment_fields)
 
 }
 
@@ -195,3 +211,31 @@ class Tickets(Resource):
 		ticket.state_id      = args.state_id
 		db.session.commit()
 		return ticket,201
+
+	@jwt_required
+	@roles_required('administrador', 'agente')
+	def patch(self, ticket_id):
+		ASSIGN = 0
+		CHANGESTATE = 1
+		UPLOAD = 2
+		args = patch_parser.parse_args()
+		ticket = Ticket.query.filter_by(id=ticket_id).first()
+		if(args.type == ASSIGN):
+			newData = Assigment(
+				ticket_id = ticket_id,
+				user_id = args.user_id,
+				edit = args.edit
+			)
+			if(args.state_id):
+				ticket.state_id = args.state_id
+			db.session.add(newData)
+		elif(args.type == CHANGESTATE):
+			ticket.state = args.state_id
+		elif(args.type == UPLOAD):
+			#TODO: PENDIENTE
+			ticket.state = args.state_id
+		try:
+			db.session.commit()
+			return 201
+		except AssertionError as exception_message:
+			abort(400, message='Error:{}'.format(exception_message))
