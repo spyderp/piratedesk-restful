@@ -1,8 +1,12 @@
+uwsgi
+Werkzeug
+jwt
+mysql
+mysql-connector
 flask
 flask-restful
 flask-migrate
 flask-sqlalchemy
-flask-jwt-extended
+Flask-JWT-Extended
 flask-cors
 flask-mail
-mysql-python
