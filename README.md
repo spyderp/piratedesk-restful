@@ -82,7 +82,7 @@ python flask db upgrade
  ```bash
 export FLASK_APP=piratedesk.py
 export FLASK_DEBUG=1
-flask piratedesl.py
+flask piratedesk.py
 ```
 
  5. Acceder a localhost para probar. (verificar el puerto que salio en consola)
