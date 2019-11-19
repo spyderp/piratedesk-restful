@@ -89,6 +89,8 @@ ENV/
 .ropeproject
 
 #static app 
-app/static/*
+app/static/files/*
 
 config.py
+app.ini
+Dockerfile

@@ -28,40 +28,13 @@ class Auth(Resource):
 						'email': user.email,
 						'ultimo_acceso': last.strftime("%d/%m/%Y %H:%M:%S"),
 						'puntaje': user.puntaje,
-                        'privileges':user.rols.privileges
+            'role':user.rols.descripcion
 					},
 					'access_token':access_token,
 					'refresh_token':refresh_token,
 					'expired_token': time.mktime(expiredToken.timetuple())
 				}, 200
 		abort(404, message="You username {} and/or password {} is incorrect, please try again".format(args.username, args.password))
-
-public_parser = reqparse.RequestParser()
-public_parser.add_argument('clienteID', location='json', required=True)
-public_parser.add_argument('username', location='json', required=True)
-public_parser.add_argument('password', location='json',  required=True)
-class AuthPublic(Resource):
-    def post(self):
-        args = public_parser.parse_args()
-        user = User.query.join(User.clients).filter(User.username==args.username, User.activo==1, Client.id==args.clienteID).first()
-        if (user):
-            if(user.check_password(args.password)):
-                last = user.ultimo_acceso
-                user.ultimo_acceso = datetime.utcnow()
-                db.session.commit()
-                return {
-                    'user':{
-                        'id': user.id,
-                        'nombre': user.nombre,
-                        'apellido': user.apellido,
-                        'email': user.email,
-                        'ultimo_acceso': last.strftime("%d/%m/%Y %H:%M:%S") if last else '',
-                        'client_id':user.clients[0].id,
-                        'client_nombre':user.clients[0].nombre,
-                        'client_direccion':user.clients[0].direccion,
-                    },
-                }, 200
-        abort(404, message="You username {} and/or password {} is incorrect, please try again".format(args.username, args.password))
 
 class TokenRefresh(Resource):
     @jwt_refresh_token_required

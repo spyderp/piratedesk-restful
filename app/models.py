@@ -238,7 +238,7 @@ class User(db.Model):
 			raise AssertionError('No username provided')
 		if User.query.filter(User.username == username).first() and not self.id: 
 			raise AssertionError('El usuario esta en uso')
-		if len(self.username) < 5 or len(self.username) > 20:
+		if len(username) < 5 or len(username) > 20:
 			raise AssertionError('El usuario debe tener entre 5 y 20 caracteres')
 		return username
 
@@ -247,7 +247,7 @@ class User(db.Model):
 		if not email:
 			raise AssertionError('No email provided')
 
-		if not re.match("[^@]+@[^@]+\.[^@]+", self.email):
+		if not re.match("[^@]+@[^@]+\.[^@]+", email):
 			raise AssertionError('correo no valido')
 
 		return email

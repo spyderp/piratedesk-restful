@@ -21,6 +21,9 @@ mail = Mail(app)
 from app.errors import bp as errors_bp
 app.register_blueprint(errors_bp)
 
+from app.manage import bp as manage_bp
+app.register_blueprint(manage_bp)
+
 if not app.debug:
 	if app.config['MAIL_SERVER']:
 		auth = None
