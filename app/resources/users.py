@@ -40,6 +40,7 @@ user_fields = {
 	'departments':fields.Nested(departments_field),
 	'clients':fields.Nested(clients_field)
 }
+
 class Users(Resource):
 	@jwt_required
 	@marshal_with(user_fields)
@@ -55,7 +56,7 @@ class Users(Resource):
 			user = User.query.filter(User.rol_id != 4).filter(User.rol_id != 5).filter_by(id=user_id).first()
 			if(not user):
 				abort(404, message="User {} doesn't exist".format(user_id))
-		return user
+		return user,200
 		
 	@jwt_required
 	@marshal_with(user_fields)
@@ -93,14 +94,14 @@ class Users(Resource):
 	def put(self, user_id):
 		args = put_parser.parse_args()
 		result = User.query.filter_by(id=user_id).first()
-		if(not result or user_id==1):
-				abort(404, message="User {} doesn't exist".format(user_id))
-		if(not args.username):
+		if not result:
+			abort(404, message="User {} doesn't exist".format(user_id))
+		if not args.username:
 			abort(404, message="username  required")
-		result.username = args.username,
-		result.nombre = args.nombre,
-		result.apellido = args.apellido,
-		result.email  = args.email,
+		result.username = args.username
+		result.nombre = args.nombre
+		result.apellido = args.apellido
+		result.email  = args.email
 		result.activo = args.activo
 		result.rol_id = args.rol_id
 		if args.departments:
@@ -126,13 +127,14 @@ class Users(Resource):
 			abort(400, message='Error:{}'.format(exception_message))
 
 	@jwt_required
+	@marshal_with(user_fields)
 	@roles_required('administrador', 'agente')
 	def patch(self, user_id):
 		args = patch_parser.parse_args()
 		user = User.query.filter_by(id=user_id).first()
 		if(not user or user_id==1):
 				abort(404, message="User {} doesn't exist".format(user_id))
-		user.email = args.email,
+		user.email = args.email
 		if(args.password):
 			user.set_password(args.password)
 		try:
