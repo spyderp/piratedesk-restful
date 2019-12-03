@@ -21,7 +21,7 @@ class Files(Resource):
 	
 	@marshal_with(file_fields)
 	def post(self):
-		file= request.files['file']
+		file = request.files['file']
 		f = File()
 		f.set_file(file)
 		db.session.add(f)

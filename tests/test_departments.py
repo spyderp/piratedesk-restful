@@ -6,26 +6,23 @@ import json
 from datetime import datetime
 from tests.test_factory import TestFactory
 from app import db
-from app.models import Client
+from app.models import Department
 
-class ClientTest(TestFactory):
+class DepartmentTest(TestFactory):
 	def setUp(self):
 		TestFactory.setUp(self)
-		client = Client(
-			nombre = "AGENCIA TUDAD",
-			email = "info@tudad.com"
-		)
-		db.session.add(client)
+		data = []
+		data.append(Department(descripcion="padre", user_id=1))
+		data.append(Department(descripcion="hijo", user_id=1, parent_id=1))
+		db.session.add_all(data)
 		db.session.commit()
-		self.path = '/clients'
+		self.path = '/departments'
 
 	def test_post_page(self):
 		data = {
-			"nombre": "CARIMAÑOLA SA",
-			"direccion": "kjsdfksjdfk",
-			"telefono": "kjsdfksjdfk",
-			"celular": "kjsdfksjdfk",
-			"email": "info@carimanola.sa"
+			"descripcion": "CARIMAÑOLA SA",
+			"parent_id": 2,
+			"user_id": 1
 		}
 		response = self.app.post(self.path, content_type = 'application/json', data = json.dumps(data), headers=self.headers)
 		self.assertEqual(response.status_code, 201)
@@ -36,17 +33,19 @@ class ClientTest(TestFactory):
 	
 	def test_put_page(self):
 		data = {
-			"nombre": "AGENCIA TUDAD",
-			"direccion": "213",
-			"telefono": "kjsdf45ksjdfk",
-			"celular": "kjsdfk456sjdfk",
-			"email": "info@tudad.com"
+			"descripcion": "super_hijo",
+			"parent_id": 1,
+			"user_id": 1
 		}
-		response = self.app.put(self.path + '/1', content_type = 'application/json', data = json.dumps(data), headers=self.headers)
+		response = self.app.put(self.path + '/2', content_type = 'application/json', data = json.dumps(data), headers=self.headers)
 		self.assertEqual(response.status_code, 201)
 
 	def test_delete_page(self):
 		response = self.app.delete(self.path + '/1', content_type = 'application/json',  headers=self.headers)
+		self.assertEqual(response.status_code, 404)
+
+	def test_delete2_page(self):
+		response = self.app.delete(self.path + '/2', content_type = 'application/json',  headers=self.headers)
 		self.assertEqual(response.status_code, 204)
 
 	

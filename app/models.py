@@ -16,9 +16,10 @@ department_user = db.Table('department_user',
 	db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
 	db.Column('department_id', db.Integer, db.ForeignKey('department.id'), primary_key=True)
 ) 
-calendar_festive = db.Table('calendar_festive',
-	db.Column('calendar_id', db.Integer, db.ForeignKey('calendar.id'), primary_key=True),
-	db.Column('festive_id', db.Integer, db.ForeignKey('festive.id'), primary_key=True)
+
+file_ticket = db.Table('file_ticket',
+	db.Column('file_id', db.Integer, db.ForeignKey('file.id'), primary_key=True),
+	db.Column('ticket_id', db.Integer, db.ForeignKey('ticket.id'), primary_key=True)
 ) 
 
 class Assigment(db.Model):
@@ -30,25 +31,6 @@ class Assigment(db.Model):
 	user_id 		= db.Column(db.Integer, db.ForeignKey('user.id'))
 	ticket_id	= db.Column(db.Integer, db.ForeignKey('ticket.id'))
 
-class Calendar(db.Model):
-	id            = db.Column(db.Integer, primary_key=True)
-	descripcion   = db.Column(db.String(15), nullable=False)
-	dias          = db.Column(db.String(15), nullable=False)
-	hora_inicio   = db.Column(db.Time)
-	hora_final    = db.Column(db.Time)
-	fulltime      = db.Column(db.Boolean, default=False)
-	clients    	  = db.relationship('Client')
-	festives	  = db.relationship('Festive', secondary=calendar_festive , lazy='subquery', backref=db.backref('calendar_festive', lazy=True))
-	
-	@hybrid_property
-	def semana(self):
-		return self.dias.replace('0','D').replace('1','L').replace('2','M').replace('3','Mi').replace('4','J').replace('5','V').replace('6','S')
-
-class Category(db.Model):
-	id          = db.Column(db.Integer, primary_key=True)
-	name        = db.Column(db.String(30), nullable=False)
-	descripcion = db.Column(db.String(250), nullable=False)
-
 class Client(db.Model):
 	id         = db.Column(db.Integer, primary_key=True)
 	nombre 	   = db.Column(db.String(60), nullable=False)
@@ -56,34 +38,16 @@ class Client(db.Model):
 	telefono   = db.Column(db.String(30))
 	celular    = db.Column(db.String(12))
 	email      = db.Column(db.String(60) , unique=True)
-	calendar_id = db.Column(db.Integer, db.ForeignKey('calendar.id'),default=1)	
-	calendars    = db.relationship('Calendar')
 	tickets    = db.relationship('Ticket')
 
 class Department(db.Model):
 	id 			  = db.Column(db.Integer, primary_key=True)
 	descripcion   = db.Column(db.String(45), nullable=False)
 	parent_id 	  = db.Column(db.Integer, db.ForeignKey('department.id'))
-	user_id 	  = db.Column(db.Integer, db.ForeignKey('user.id'))
-	children 	  = db.relationship('Department')
-	users         = db.relationship('User')
-	knowledges    = db.relationship('Knowledge')
+	user_id 	    = db.Column(db.Integer, db.ForeignKey('user.id'))
+	children 	    = db.relationship('Department')
 	tickets       = db.relationship('Ticket')
 
-class Faq(db.Model):
-	id              = db.Column(db.Integer, primary_key=True)
-	title           = db.Column(db.String(100), nullable=False, unique=True)
-	content         = db.Column(db.Text)
-	orden           = db.Column(db.Integer) 
-	creado          = db.Column(db.DateTime, default=datetime.utcnow)
-	modificado      = db.Column(db.DateTime, onupdate=datetime.utcnow)
-	category_id 	= db.Column(db.Integer, db.ForeignKey('category.id'),default=1)
-	categories      = db.relationship('Category')
-
-class Festive(db.Model):
-	id          = db.Column(db.Integer, primary_key=True)
-	descripcion = db.Column(db.String(50), nullable=False)
-	fecha       = db.Column(db.DateTime, nullable=False)
 
 class File(db.Model):
 	id         = db.Column(db.Integer, primary_key=True)
@@ -93,8 +57,7 @@ class File(db.Model):
 	type       = db.Column(db.String(15))
 	creado     = db.Column(db.DateTime, default=datetime.utcnow)
 	modificado = db.Column(db.DateTime, onupdate=datetime.utcnow)
-	trophys    = db.relationship('Trophy')
-	users      = db.relationship('User',    backref='avatar')
+	users      = db.relationship('User', backref='avatar', lazy=True)
 	
 	def set_file(self, file):
 		filename = secure_filename(file.filename)
@@ -118,16 +81,6 @@ class Key(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	word = db.Column(db.String(60)) 
 
-class Knowledge(db.Model):
-	id            = db.Column(db.Integer, primary_key=True)
-	title         = db.Column(db.String(100), nullable=False, unique=True)
-	keys          = db.Column(db.String(100))
-	content       = db.Column(db.Text)
-	creado        = db.Column(db.DateTime, default=datetime.utcnow)
-	modificado    = db.Column(db.DateTime, onupdate=datetime.utcnow)
-	rating        = db.Column(db.Integer, default=0)
-	access        = db.Column(db.Integer, default=0)
-	department_id = db.Column(db.Integer, db.ForeignKey('department.id'))
 
 class Message(db.Model):
 	id           = db.Column(db.Integer, primary_key=True)
@@ -194,6 +147,7 @@ class Ticket(db.Model):
 	priority_id   = db.Column(db.Integer, db.ForeignKey('priority.id'))
 	state_id      = db.Column(db.Integer, db.ForeignKey('state.id'))
 	user_id	      = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+	files				  = db.relationship('File', secondary=file_ticket, lazy='subquery', backref=db.backref('tickets', lazy=True))
 	clients       = db.relationship('Client')
 	departments   = db.relationship('Department')
 	priorities    = db.relationship('Priority')
@@ -202,13 +156,6 @@ class Ticket(db.Model):
 	messages      = db.relationship('Message')
 	assigments 	  = db.relationship('Assigment')
 
-class Trophy(db.Model):
-	id          = db.Column(db.Integer, primary_key=True)
-	descripcion = db.Column(db.String(60), nullable=False)
-	puntos      = db.Column(db.Integer, nullable=False)
-	creado      = db.Column(db.DateTime, default=datetime.utcnow)
-	modificado 	= db.Column(db.DateTime, onupdate=datetime.utcnow)
-	file_id	    = db.Column(db.Integer, db.ForeignKey('file.id'))
 
 class User(db.Model):
 	id            = db.Column(db.Integer, primary_key=True)
@@ -225,11 +172,10 @@ class User(db.Model):
 	rol_id 	      = db.Column(db.Integer, db.ForeignKey('rol.id'))
 	file_id	      = db.Column(db.Integer, db.ForeignKey('file.id'), default=1)
 	Assigments 	  = db.relationship('Assigment')
-	#knowledges 		= db.relationship('Knowledge')
 	tickets 	  = db.relationship('Ticket')
 	rols 		  = db.relationship('Rol')
-	clients		  = db.relationship('Client', secondary=client_user , lazy='subquery', backref=db.backref('client_user', lazy=True))
-	departments	  = db.relationship('Department', secondary=department_user , lazy='subquery', backref=db.backref('department_user', lazy=True))
+	clients		  = db.relationship('Client', secondary=client_user , lazy='subquery', backref=db.backref('users', lazy=True))
+	departments	  = db.relationship('Department', secondary=department_user , lazy='subquery', backref=db.backref('users', lazy=True))
 	
 	@validates('username')
 	def validate_username(self, key, username):

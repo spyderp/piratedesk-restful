@@ -60,7 +60,6 @@ class States(Resource):
 		if(not result):
 				abort(404, message="State {} doesn't exist".format(state_id))
 		#Datos a Editar
-		#result.direccion   = args.direccion
 		result.descripcion = args.descripcion
 		db.session.commit()
 		return result,201

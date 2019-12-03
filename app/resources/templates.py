@@ -76,7 +76,6 @@ class Templates(Resource):
 			if(result2>0):
 				abort(404, message="{} ya existe".format(args.descripcion))
 		#Datos a Editar
-		#result.direccion   = args.direccion
 		result.descripcion = args.descripcion
 		result.body = args.body
 		db.session.commit()

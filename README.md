@@ -8,17 +8,12 @@ Si deseas colaborar solo revisa los issue.
 ## Caracteisticas
 
  - Administración de usuarios.
- - Manejo calendario de trabajo.
- - Adminsitración de clientes.
- - Admkinsitración de Departamento
+ - Administración de clientes.
+ - Adminitración de Departamento
  - Manejo de caso por estados.
- - Configurar días festivos.
- - Gamificación
  - Creación de plantilla para maenejo de casos. 
- - Base de Datos de conocimiento (Knowledges DB)
  - Bandeja de Entrada
- - Seguimiento de caso, chat en tiempo real  
- - Creación y administración de FAQ
+ - Seguimiento de caso  
  - Configuración
 
 ## Caracteristicas técnicas
@@ -86,6 +81,15 @@ flask piratedesk.py
 ```
 
  5. Acceder a localhost para probar. (verificar el puerto que salio en consola)
+
+ 6. Agregar datos de inicio
+ 
+ ```bash
+ flask manage dbinit
+ ```
+Esto creara el usuario admin con el password admin y los roles principales del sistema.
+
+
  
 
 

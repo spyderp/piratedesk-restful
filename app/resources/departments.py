@@ -52,9 +52,13 @@ class Departments(Resource):
 		department = Department.query.filter_by(id=department_id).first()
 		if(not department):
 				abort(404, message="Department {} doesn't exist".format(department_id))
+		department2 = Department.query.filter_by(parent_id=department_id).first()
+		if department2:
+			abort(404, message="You cannot delete the department with the id: {} because you have a child. ".format(department_id))
 		db.session.delete(department)
 		db.session.commit()
 		return '', 204
+
 	@jwt_required
 	@roles_required('administrador', 'agente')
 	@marshal_with(department_fields)
@@ -76,10 +80,10 @@ class Departments(Resource):
 		department = Department.query.filter_by(id=department_id).first()
 		if(not department):
 				abort(404, message="Department {} doesn't exist".format(department_id))
-		if(not args.nombre):
+		if(not args.descripcion):
 			abort(404, message="El nombre es requerido no puede esta vacio")
-		department.descripcion = args.descripcion,
-		department.parent_id   = args.parent_id,
-		department.user_id 	   = args.user_id,
+		department.descripcion = args.descripcion
+		department.parent_id   = args.parent_id
+		department.user_id 	   = args.user_id
 		db.session.commit()
 		return department,201

@@ -8,6 +8,7 @@ from app.resources.rols import Rols
 from app.resources.states import States
 from app.resources.templates import Templates
 from app.resources.tickets import Tickets
+from app.resources.messages import Messages
 from app.resources.users import Users, Reset_password_request, Reset_password
 
 api.add_resource(Auth, '/login')
@@ -16,9 +17,10 @@ api.add_resource(Departments, '/departments', '/departments/<department_id>')
 api.add_resource(Files, '/files', '/files/<filename>')
 api.add_resource(LogoutAccess, '/logout/access')
 api.add_resource(LogoutRefresh, '/logout/refresh')
+api.add_resource(Messages, '/messages', '/messages/<message_id>')
 api.add_resource(Priorities, '/priorities', '/priorities/<priority_id>')
-api.add_resource(Reset_password, '/reset/token/<token>')
 api.add_resource(Reset_password_request, '/reset/password')
+api.add_resource(Reset_password, '/reset/token/<token>')
 api.add_resource(Rols, '/rols', '/rols/<rol_id>')
 api.add_resource(States, '/states', '/states/<state_id>')
 api.add_resource(Templates, '/templates', '/templates/<template_id>')

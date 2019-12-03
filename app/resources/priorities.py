@@ -87,7 +87,6 @@ class Priorities(Resource):
 		if(not result):
 				abort(404, message="Priority {} doesn't exist".format(priority_id))
 		#Datos a Editar
-		#result.direccion   = args.direccion
 		result.descripcion = args.descripcion
 		result.respuesta = args.respuesta
 		result.resuelto = args.resuelto

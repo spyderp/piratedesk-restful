@@ -31,17 +31,11 @@ post_parser.add_argument(
 	location='json', 
 	help='Correo eléctronico',
 )
-post_parser.add_argument(
-	'calendar_id', 
-	location='json', 
-	required=True,
-)
+
 get_parser = reqparse.RequestParser()
 get_parser.add_argument('type', location='args', help='formato respuesta')
 
-calendar_fiels = {
-	'descripcion':fields.String
-}
+
 client_fields = {
 	'id': fields.Integer,
 	'nombre': fields.String,
@@ -50,8 +44,6 @@ client_fields = {
 	'telefono': fields.String,
 	'celular': fields.String,
 	'email': fields.String,
-	'calendar_id':fields.Integer,
-	'calendars':fields.Nested(calendar_fiels)
 }
 
 class Clients(Resource):
@@ -69,9 +61,10 @@ class Clients(Resource):
 			data = []
 			for row in client:
 				data.append({'id':row.id, 'text':row.nombre})
-		return marshal(client,client_fields)  if not args.type  else data
+		return marshal(client,client_fields)  if not args.type  else data,200
 
 	@jwt_required
+	@roles_required('administrador')
 	def delete(self, client_id):
 		client = Client.query.filter_by(id=client_id).first()
 		if(not client):
@@ -81,6 +74,7 @@ class Clients(Resource):
 		return '', 204
 
 	@jwt_required
+	@roles_required('administrador', 'agente')
 	@marshal_with(client_fields)
 	def post(self):
 		args = post_parser.parse_args()
@@ -90,13 +84,13 @@ class Clients(Resource):
 			telefono 	= args.telefono,
 			celular  	= args.celular,
 			email  		= args.email,
-			calendar_id = args.calendar_id   
 		)
 		db.session.add(client)
 		db.session.commit()
 		return client,201
 
 	@jwt_required
+	@roles_required('administrador', 'agente')
 	@marshal_with(client_fields)
 	def put(self, client_id):
 		args = post_parser.parse_args()
@@ -106,11 +100,10 @@ class Clients(Resource):
 		if(not args.nombre):
 			abort(404, message="El nombre es requerido no puede esta vacio")
 		client.direccion   = args.direccion
-		client.nombre 		 = args.nombre,
-		client.telefono 	 = args.telefono,
-		client.celular  	 = args.celular,
+		client.nombre 		 = args.nombre
+		client.telefono 	 = args.telefono
+		client.celular  	 = args.celular
 		client.email  		 = args.email
-		client.calendar_id = args.calendar_id   
 		db.session.commit()
 		return client,201
 

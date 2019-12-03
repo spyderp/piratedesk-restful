@@ -6,26 +6,24 @@ import json
 from datetime import datetime
 from tests.test_factory import TestFactory
 from app import db
-from app.models import Client
+from app.models import Priority
 
 class ClientTest(TestFactory):
 	def setUp(self):
 		TestFactory.setUp(self)
-		client = Client(
-			nombre = "AGENCIA TUDAD",
-			email = "info@tudad.com"
+		priority = Priority(
+			descripcion = "baja",
 		)
-		db.session.add(client)
+		db.session.add(priority)
 		db.session.commit()
-		self.path = '/clients'
+		self.path = '/priorities'
 
 	def test_post_page(self):
 		data = {
-			"nombre": "CARIMAÑOLA SA",
-			"direccion": "kjsdfksjdfk",
-			"telefono": "kjsdfksjdfk",
-			"celular": "kjsdfksjdfk",
-			"email": "info@carimanola.sa"
+			"descripcion": "media",
+			"respuesta":1,
+			"resuelto":1,
+			"escalable": True
 		}
 		response = self.app.post(self.path, content_type = 'application/json', data = json.dumps(data), headers=self.headers)
 		self.assertEqual(response.status_code, 201)
@@ -36,11 +34,10 @@ class ClientTest(TestFactory):
 	
 	def test_put_page(self):
 		data = {
-			"nombre": "AGENCIA TUDAD",
-			"direccion": "213",
-			"telefono": "kjsdf45ksjdfk",
-			"celular": "kjsdfk456sjdfk",
-			"email": "info@tudad.com"
+			"descripcion": "baja",
+			"respuesta":0,
+			"resuelto":0,
+			"escalable": True
 		}
 		response = self.app.put(self.path + '/1', content_type = 'application/json', data = json.dumps(data), headers=self.headers)
 		self.assertEqual(response.status_code, 201)

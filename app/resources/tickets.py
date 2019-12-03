@@ -3,7 +3,7 @@ from flask import render_template
 from flask_restful import Resource, reqparse, fields, marshal_with, abort, marshal
 from flask_jwt_extended import jwt_required
 from app import db
-from app.models import Ticket, Key, Assigment
+from app.models import Ticket, Key, Assigment, File
 from app.commons import roles_required, DateTimeLatinFormat, send_email
 from config import Config
 import json
@@ -50,16 +50,20 @@ post_parser.add_argument(
 	'user_id', 
 	location='json', 
 )
+put_parser = post_parser
+put_parser.add_argument('state_id', location='json')
+
 get_parser = reqparse.RequestParser()
 get_parser.add_argument('find', location='args', help='for find')
 get_parser.add_argument('page', location='args', help='paging', type=int)
 get_parser.add_argument('order', location='args', help='order')
 
 patch_parser = reqparse.RequestParser()
-patch_parser.add_argument('type', location='args', type=int)
+patch_parser.add_argument('type', location='json', type=int, required=True,)
 patch_parser.add_argument('user_id', location='json', type=int)
 patch_parser.add_argument('edit', location='json', type=int)
 patch_parser.add_argument('state_id', location='json', type=int)
+patch_parser.add_argument('file_id', location='json', type=int)
 
 client_fields = {
 	'id': fields.Integer,
@@ -133,18 +137,18 @@ class Tickets(Resource):
 			else:
 				query = []
 				filtro = json.loads(args.find)
-				if(filtro.has_key('descripcion')):
+				if('descripcion' in filtro):
 					query.append(Ticket.titulo.like('%{}%'.format(filtro['descripcion'])))
-				if(filtro.has_key('estado')):
-					query.append(Ticket.state_id.in_(filtro['estado']))
-				if(filtro.has_key('prioridad')):
-					query.append(Ticket.priority_id.in_(filtro['prioridad']))
-				if(filtro.has_key('departamento')):
-					query.append(Ticket.department_id.in_(filtro['departamento']))
-				if(filtro.has_key('fecha_desde')):
-					query.append(Ticket.creado>='{}-{}-{}'.format(filtro['departamento']['year'],filtro['departamento']['month'],filtro['departamento']['day']))
-				if(filtro.has_key('fecha_hasta')):
-					query.append(Ticket.creado>='{}-{}-{}'.format(filtro['departamento']['year'],filtro['departamento']['month'],filtro['departamento']['day']))
+				if('estado' in filtro):
+					query.append(Ticket.state_id == filtro['estado'])
+				if('prioridad' in filtro):
+					query.append(Ticket.priority_id == filtro['prioridad'])
+				if('departamento' in filtro):
+					query.append(Ticket.department_id == filtro['departamento'])
+				if('fecha_desde' in filtro):
+					query.append(Ticket.creado>='{}-{}-{}'.format(filtro['fecha_desde']['year'],filtro['fecha_desde']['month'],filtro['fecha_desde']['day']))
+				if('fecha_hasta' in filtro):
+					query.append(Ticket.creado>='{}-{}-{}'.format(filtro['fecha_hasta']['year'],filtro['fecha_hasta']['month'],filtro['fecha_hasta']['day']))
 				if(len(query)>1):
 					ticket = Ticket.query.filter(db.or_(*query)).all() if(not args.page) else Ticket.query.filter(db.or_(*query)).paginate(args.page, 18, False).items
 				else:
@@ -153,9 +157,9 @@ class Tickets(Resource):
 			ticket = Ticket.query.filter_by(id=ticket_id).first()
 			if(not ticket):
 				abort(404, message="Ticket {} doesn't exist".format(ticket_id))
-		return ticket
+		return ticket, 200
 
-	def delete(self, client_id):
+	def delete(self, ticket_id):
 		ticket = Ticket.query.filter_by(id=ticket_id).first()
 		if(not ticket):
 				abort(404, message="Ticket {} doesn't exist".format(ticket_id))
@@ -195,11 +199,11 @@ class Tickets(Resource):
 	@roles_required('administrador', 'agente')
 	@marshal_with(ticket_fields)
 	def put(self, ticket_id):
-		args = post_parser.parse_args()
+		args = put_parser.parse_args()
 		ticket = Ticket.query.filter_by(id=ticket_id).first()
 		if(not ticket):
 				abort(404, message="Ticket {} doesn't exist".format(ticket_id))
-		if(not args.nombre):
+		if(not args.titulo):
 			abort(404, message="El nombre es requerido no puede esta vacio")
 		ticket.titulo        = args.titulo
 		ticket.content       = args.content
@@ -218,6 +222,7 @@ class Tickets(Resource):
 		ASSIGN = 0
 		CHANGESTATE = 1
 		UPLOAD = 2
+		REMOVE = 3
 		args = patch_parser.parse_args()
 		ticket = Ticket.query.filter_by(id=ticket_id).first()
 		if(args.type == ASSIGN):
@@ -232,10 +237,15 @@ class Tickets(Resource):
 		elif(args.type == CHANGESTATE):
 			ticket.state = args.state_id
 		elif(args.type == UPLOAD):
-			#TODO: PENDIENTE
-			ticket.state = args.state_id
+			if args.file_id:
+				f = File.query.filter_by(id=args.file_id).first()
+				ticket.files.append(f)
+		elif(args.type == REMOVE):
+			if args.file_id:
+				f = File.query.filter_by(id=args.file_id).first()
+				ticket.files.remove(f)
 		try:
 			db.session.commit()
-			return 201
+			return 200
 		except AssertionError as exception_message:
 			abort(400, message='Error:{}'.format(exception_message))
