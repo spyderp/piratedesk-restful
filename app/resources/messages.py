@@ -1,9 +1,15 @@
 # -*- coding: utf-8 -*-
 from flask_restful import Resource, reqparse, fields, marshal_with, abort, marshal
 from flask_jwt_extended import jwt_required
+from flask import render_template
 from app import db
-from app.models import Message
-from app.commons import roles_required, DateTimeLatinFormat
+from app.models import Message, Ticket, User
+from app.commons import roles_required, DateTimeLatinFormat, send_email
+from config import Config
+
+get_parser = reqparse.RequestParser()
+get_parser.add_argument('find', location='args')
+get_parser.add_argument('last', location='args')
 
 post_parser = reqparse.RequestParser()
 post_parser.add_argument('body', location='json', required=True, help='cuerpo del mensaje')
@@ -34,7 +40,17 @@ class Messages(Resource):
 	@roles_required('administrador', 'agente')
 	def get(self, message_id=None):
 		if(not message_id):
-			message = Message.query.all()
+			args = get_parser.parse_args()
+			if(not args.find):
+				message = Message.query.all()
+			elif(not args.last):
+				message = Message.query.filter_by(ticket_id = args.find).all()
+			else:
+				query = [
+					Message.ticket_id == args.find,
+					Message.id > args.last
+				]
+				message = Message.query.filter(*query).all()
 		else:
 			message = Message.query.filter_by(id=message_id).first()
 		if(not message):
@@ -65,9 +81,19 @@ class Messages(Resource):
 		)
 		db.session.add(message)
 		db.session.commit()
+		ticket = Ticket.query.filter_by(id = args.ticket_id).first()
+		user = User.query.filter_by(id = args.from_user_id).first()
+		text_body = render_template('email/new_message.txt',msg = args.body, ticket = ticket, FromUser = user.nombre + " " +user.apellido)
+		html_body = render_template('email/new_message.html',msg = args.body, ticket = ticket, FromUser = user.nombre + " " +user.apellido)
+		if(args.privado):
+			user = User.query.filter_by(id = args.to_user_id).first()
+			email = user.email
+		else:
+			email = ticket.email
+		#send_email('[{}] New message in Ticket'.format(Config.SITENAME),Config.MAILSYS,[email],text_body, html_body)
 		return message,201
 
-	@jwt_required
+	@jwt_required	
 	@roles_required('administrador', 'agente')
 	@marshal_with(message_fields)
 	def put(self, message_id):

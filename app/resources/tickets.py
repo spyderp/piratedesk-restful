@@ -3,7 +3,7 @@ from flask import render_template
 from flask_restful import Resource, reqparse, fields, marshal_with, abort, marshal
 from flask_jwt_extended import jwt_required
 from app import db
-from app.models import Ticket, Key, Assigment, File
+from app.models import Ticket, Key, Assigment, File, User, State, Message
 from app.commons import roles_required, DateTimeLatinFormat, send_email
 from config import Config
 import json
@@ -59,7 +59,7 @@ get_parser.add_argument('page', location='args', help='paging', type=int)
 get_parser.add_argument('order', location='args', help='order')
 
 patch_parser = reqparse.RequestParser()
-patch_parser.add_argument('type', location='json', type=int, required=True,)
+patch_parser.add_argument('type', location='args', type=int, required=True,)
 patch_parser.add_argument('user_id', location='json', type=int)
 patch_parser.add_argument('edit', location='json', type=int)
 patch_parser.add_argument('state_id', location='json', type=int)
@@ -102,6 +102,13 @@ assigment_fields = {
 	'creado': fields.DateTime(),
 	'user_id': fields.Integer,
 }
+file_fields = {
+	'id': fields.Integer,
+	'type': fields.String,
+	'size': fields.Integer,
+	'filename': fields.String,
+	'creado': fields.DateTime()
+}
 ticket_fields = {
 	'id': fields.Integer,
 	'titulo': fields.String,
@@ -116,12 +123,14 @@ ticket_fields = {
 	'department_id':fields.Integer,
 	'state_id':fields.Integer,
 	'user_id':fields.Integer,
+	'priority_id': fields.Integer,
 	'clients':fields.Nested(client_fields),
 	'departments':fields.Nested(department_fields),
 	'priorities':fields.Nested(priority_fields),
 	'states':fields.Nested(state_fields),
 	'users':fields.Nested(user_fields),
-	'assigments':fields.Nested(assigment_fields)
+	'assigments':fields.Nested(assigment_fields),
+	'files': fields.Nested(file_fields)
 
 }
 
@@ -158,7 +167,9 @@ class Tickets(Resource):
 			if(not ticket):
 				abort(404, message="Ticket {} doesn't exist".format(ticket_id))
 		return ticket, 200
-
+	
+	@jwt_required
+	@roles_required('administrador', 'agente')
 	def delete(self, ticket_id):
 		ticket = Ticket.query.filter_by(id=ticket_id).first()
 		if(not ticket):
@@ -166,7 +177,8 @@ class Tickets(Resource):
 		db.session.delete(ticket)
 		db.session.commit()
 		return '', 204
-
+	@jwt_required
+	@roles_required('administrador', 'agente')
 	@marshal_with(ticket_fields)
 	def post(self):
 		args = post_parser.parse_args()
@@ -202,7 +214,7 @@ class Tickets(Resource):
 		args = put_parser.parse_args()
 		ticket = Ticket.query.filter_by(id=ticket_id).first()
 		if(not ticket):
-				abort(404, message="Ticket {} doesn't exist".format(ticket_id))
+			abort(404, message="Ticket {} doesn't exist".format(ticket_id))
 		if(not args.titulo):
 			abort(404, message="El nombre es requerido no puede esta vacio")
 		ticket.titulo        = args.titulo
@@ -213,6 +225,7 @@ class Tickets(Resource):
 		ticket.department_id = args.department_id
 		ticket.priority_id   = args.priority_id
 		ticket.state_id      = args.state_id
+		ticket.email      	 = args.email
 		db.session.commit()
 		return ticket,201
 
@@ -223,9 +236,14 @@ class Tickets(Resource):
 		CHANGESTATE = 1
 		UPLOAD = 2
 		REMOVE = 3
+		message = Message()
 		args = patch_parser.parse_args()
 		ticket = Ticket.query.filter_by(id=ticket_id).first()
+		#Asignar un usuario al ticket
 		if(args.type == ASSIGN):
+			
+			user = User.query.filter_by(id=args.user_id).first()
+			msg = "Se ha asigado al usuario: {} {} ".format(user.nombre, user.apellido)
 			newData = Assigment(
 				ticket_id = ticket_id,
 				user_id = args.user_id,
@@ -233,19 +251,34 @@ class Tickets(Resource):
 			)
 			if(args.state_id):
 				ticket.state_id = args.state_id
+				state = State.query.filter_by(id = args.state_id).first()
+				msg = msg + "y se cambio al estado: {}".format(state.descripcion)
+			message.set_message_sys(msg)
 			db.session.add(newData)
+		#Asignar Cambiar el estado
 		elif(args.type == CHANGESTATE):
-			ticket.state = args.state_id
+			ticket.state_id = args.state_id
+			state = State.query.filter_by(id = args.state_id).first()
+			msg = "Se cambio al estado: {}".format(state.descripcion)
+			db.session.commit()
+		#Subir archivo
 		elif(args.type == UPLOAD):
 			if args.file_id:
 				f = File.query.filter_by(id=args.file_id).first()
 				ticket.files.append(f)
+				msg = "Se adjunto el archivo: {}".format(f.filename)
+		# Remover archvio
 		elif(args.type == REMOVE):
 			if args.file_id:
 				f = File.query.filter_by(id=args.file_id).first()
 				ticket.files.remove(f)
+				msg = "Se elimino el archivo: {}".format(f.filename)
 		try:
+			db.session.add(message)
 			db.session.commit()
+			text_body  = render_template('email/msg_ticket.txt',ticket = ticket, msg = msg)
+			html_body=render_template('email/msg_ticket.html',ticket = ticket, msg = msg)
+			# send_email('[{}] ticket message'.format(Config.SITENAME),Config.MAILSYS,[ticket.email],text_body, html_body)
 			return 200
 		except AssertionError as exception_message:
 			abort(400, message='Error:{}'.format(exception_message))

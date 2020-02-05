@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import os, re
-from app import db
+from app import db, app
 from datetime import datetime
 from time import time
 import jwt 
@@ -8,6 +8,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import validates
+
+SYSUSER = 2
+
 client_user = db.Table('client_user',
 	db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
 	db.Column('client_id', db.Integer, db.ForeignKey('client.id'), primary_key=True)
@@ -66,7 +69,7 @@ class File(db.Model):
 		self.uri      = uri
 		self.filename = filename
 		self.type     = file.content_type
-		self.size     = file.content_length
+		self.size     = os.stat(uri).st_size
 
 class ForgotPassword(db.Model):
 	id       = db.Column(db.Integer, primary_key=True)
@@ -92,14 +95,19 @@ class Message(db.Model):
 	to_user_id   = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
 	fromUser     = db.relationship('User',  foreign_keys=from_user_id,)
 	toUser       = db.relationship('User', foreign_keys=to_user_id,)
+	def set_message_sys(self, msg):
+		self.body = msg
+		self.from_user_id = SYSUSER
 
 class Priority(db.Model):
 	id          = db.Column(db.Integer, primary_key=True)
 	descripcion = db.Column(db.String(10), nullable=False)
-	respuesta   = db.Column(db.Integer)
-	resuelto    = db.Column(db.Integer)
+	respuesta   = db.Column(db.Integer, nullable=False)
+	resuelto    = db.Column(db.Integer, nullable=False)
 	escalable   = db.Column(db.Boolean, default=False)
 	tickets     = db.relationship('Ticket') 
+	
+
 
 class RevokedToken(db.Model):
 		__tablename__ = 'revoked_tokens'

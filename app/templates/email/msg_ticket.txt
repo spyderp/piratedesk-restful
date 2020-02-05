@@ -1,0 +1,2 @@
+Ticket #{{"%05d"|format(ticket.id)}} \n\n
+{{ msg }}
