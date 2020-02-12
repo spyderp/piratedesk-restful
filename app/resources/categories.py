@@ -21,6 +21,7 @@ data_fields = {
 
 class Categories(Resource):
 	@marshal_with(data_fields)
+	@roles_required(['administrador', 'agente', 'supervisor'])
 	def get(self, category_id=None):
 		if(not category_id):
 			result = Category.query.order_by(Category.name).all()
@@ -31,7 +32,7 @@ class Categories(Resource):
 		return result
 
 	@jwt_required
-	@roles_required('administrador', 'agente')
+	@roles_required(['administrador', 'agente'])
 	def delete(self, category_id):
 		result = Category.query.filter_by(id=category_id).first()
 		if(not result):
@@ -41,7 +42,7 @@ class Categories(Resource):
 		return '', 204
 
 	@jwt_required
-	@roles_required('administrador', 'agente')
+	@roles_required(['administrador', 'agente'])
 	@marshal_with(data_fields)
 	def post(self):
 		args = post_parser.parse_args()
@@ -57,7 +58,7 @@ class Categories(Resource):
 		return newData,201
 
 	@jwt_required
-	@roles_required('administrador', 'agente')
+	@roles_required(['administrador', 'agente'])
 	@marshal_with(data_fields)
 	def put(self, category_id):
 		args = post_parser.parse_args()

@@ -10,8 +10,8 @@ from random import *
 import hashlib
 from  datetime import datetime
 
-def roles_required(*role_names):
-	def wrapper(func):
+def roles_required(role_names=[]):
+	def wrap(func):
 		@wraps(func)
 		def decorated_view(*args, **kwargs):
 			current_user = get_jwt_identity()
@@ -19,10 +19,9 @@ def roles_required(*role_names):
 			rol = user.rols.descripcion	
 			if not (rol in role_names):
 				return abort(404)
-			# Call the actual view
 			return func(*args, **kwargs)
 		return decorated_view
-	return wrapper
+	return wrap
 
 
 

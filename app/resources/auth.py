@@ -11,7 +11,7 @@ post_parser.add_argument('password', location='json',  required=True)
 class Auth(Resource):
 	def post(self):
 		args = post_parser.parse_args()
-		user = User.query.filter_by(username=args.username).filter_by(activo=1).first()
+		user = User.query.filter(User.username == args.username, User.activo == 1).first()
 		if (user):
 			if(user.check_password(args.password)):
 				last = user.ultimo_acceso

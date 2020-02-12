@@ -37,7 +37,7 @@ class Messages(Resource):
 
 	@jwt_required
 	@marshal_with(message_fields)
-	@roles_required('administrador', 'agente')
+	@roles_required(['administrador', 'agente', 'supervisor'])
 	def get(self, message_id=None):
 		if(not message_id):
 			args = get_parser.parse_args()
@@ -58,7 +58,7 @@ class Messages(Resource):
 		return message,200
 
 	@jwt_required
-	@roles_required('administrador')
+	@roles_required(['supervisor'])
 	def delete(self, message_id):
 		message = Message.query.filter_by(id=message_id).first()
 		if(not message):
@@ -68,7 +68,7 @@ class Messages(Resource):
 		return '', 204
 
 	@jwt_required
-	@roles_required('administrador', 'agente')
+	@roles_required(['administrador', 'agente', 'supervisor'])
 	@marshal_with(message_fields)
 	def post(self):
 		args = post_parser.parse_args()
@@ -94,7 +94,7 @@ class Messages(Resource):
 		return message,201
 
 	@jwt_required	
-	@roles_required('administrador', 'agente')
+	@roles_required(['administrador', 'supervisor'])
 	@marshal_with(message_fields)
 	def put(self, message_id):
 		args = post_parser.parse_args()

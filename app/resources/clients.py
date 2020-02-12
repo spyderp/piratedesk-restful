@@ -48,7 +48,7 @@ client_fields = {
 
 class Clients(Resource):
 	@jwt_required
-	@roles_required('administrador', 'agente')
+	@roles_required(['administrador', 'agente', 'supervisor'])
 	def get(self, client_id=None):
 		args = get_parser.parse_args()
 		if(not client_id):
@@ -74,7 +74,7 @@ class Clients(Resource):
 		return '', 204
 
 	@jwt_required
-	@roles_required('administrador', 'agente')
+	@roles_required(['administrador', 'agente'])
 	@marshal_with(client_fields)
 	def post(self):
 		args = post_parser.parse_args()
@@ -90,7 +90,7 @@ class Clients(Resource):
 		return client,201
 
 	@jwt_required
-	@roles_required('administrador', 'agente')
+	@roles_required(['administrador', 'agente'])
 	@marshal_with(client_fields)
 	def put(self, client_id):
 		args = post_parser.parse_args()

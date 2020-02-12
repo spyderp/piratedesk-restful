@@ -136,7 +136,7 @@ ticket_fields = {
 
 class Tickets(Resource):
 	@jwt_required
-	@roles_required('administrador', 'agente')
+	@roles_required(['administrador', 'supervisor', 'agente'])
 	@marshal_with(ticket_fields)
 	def get(self, ticket_id=None):
 		if(not ticket_id):
@@ -169,7 +169,7 @@ class Tickets(Resource):
 		return ticket, 200
 	
 	@jwt_required
-	@roles_required('administrador', 'agente')
+	@roles_required(['administrador', 'supervisor'])
 	def delete(self, ticket_id):
 		ticket = Ticket.query.filter_by(id=ticket_id).first()
 		if(not ticket):
@@ -178,7 +178,7 @@ class Tickets(Resource):
 		db.session.commit()
 		return '', 204
 	@jwt_required
-	@roles_required('administrador', 'agente')
+	@roles_required(['administrador', 'agente'])
 	@marshal_with(ticket_fields)
 	def post(self):
 		args = post_parser.parse_args()
@@ -208,7 +208,7 @@ class Tickets(Resource):
 		return ticket,201
 
 	@jwt_required
-	@roles_required('administrador', 'agente')
+	@roles_required(['administrador', 'agente', 'supervisor'])
 	@marshal_with(ticket_fields)
 	def put(self, ticket_id):
 		args = put_parser.parse_args()
@@ -230,7 +230,7 @@ class Tickets(Resource):
 		return ticket,201
 
 	@jwt_required
-	@roles_required('administrador', 'agente')
+	@roles_required(['administrador', 'agente', 'supervisor'])
 	def patch(self, ticket_id):
 		ASSIGN = 0
 		CHANGESTATE = 1
@@ -241,7 +241,9 @@ class Tickets(Resource):
 		ticket = Ticket.query.filter_by(id=ticket_id).first()
 		#Asignar un usuario al ticket
 		if(args.type == ASSIGN):
-			
+			validate = Assigment.query.filter_by(user_id=args.user_id).filter_by(ticket_id = ticket_id).count()
+			if(validate > 0):
+				abort(400, message='Error: USER')
 			user = User.query.filter_by(id=args.user_id).first()
 			msg = "Se ha asigado al usuario: {} {} ".format(user.nombre, user.apellido)
 			newData = Assigment(

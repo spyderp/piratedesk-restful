@@ -24,6 +24,7 @@ patch_parser.add_argument('email', location='json',  required=True, help='Correo
 patch_parser.add_argument('password', location='json',  help='Contraseña')
 get_parser = reqparse.RequestParser()
 get_parser.add_argument('client', location='args', )
+get_parser.add_argument('agent', location='args', )
 departments_field = {'id': fields.Integer,}
 clients_field = {'id': fields.Integer,}
 user_fields = {
@@ -34,6 +35,7 @@ user_fields = {
 	'email': fields.String,
 	'activo': fields.Integer,
 	'creado': DateTimeLatinFormat(),
+	'rol_id': fields.Integer,
 	'modificado': DateTimeLatinFormat(),
 	'ultimo_acceso': DateTimeLatinFormat(),
 	'puntaje': fields.Integer,
@@ -44,12 +46,14 @@ user_fields = {
 class Users(Resource):
 	@jwt_required
 	@marshal_with(user_fields)
-	@roles_required('administrador', 'agente')
+	@roles_required(['administrador', 'agente', 'supervisor'])
 	def get(self, user_id=None):
 		args = get_parser.parse_args()
 		if(not user_id):
 			if(args.client):
 				user = User.query.filter_by(rol_id=4).all()
+			elif(args.agent):
+				user = User.query.filter(User.rol_id>1, User.rol_id<4).all()
 			else:
 				user = User.query.filter(User.rol_id != 4).filter(User.rol_id != 5).all()
 		else:
@@ -60,7 +64,7 @@ class Users(Resource):
 		
 	@jwt_required
 	@marshal_with(user_fields)
-	@roles_required('administrador', 'agente')
+	@roles_required(['administrador', 'agente'])
 	def post(self):
 		args = post_parser.parse_args()
 		if(not args.username or  not args.password):
@@ -90,7 +94,7 @@ class Users(Resource):
 
 	@jwt_required
 	@marshal_with(user_fields)
-	@roles_required('administrador', 'agente')
+	@roles_required(['administrador', 'agente'])
 	def put(self, user_id):
 		args = put_parser.parse_args()
 		result = User.query.filter_by(id=user_id).first()
@@ -128,7 +132,7 @@ class Users(Resource):
 
 	@jwt_required
 	@marshal_with(user_fields)
-	@roles_required('administrador', 'agente')
+	@roles_required(['administrador', 'agente'])
 	def patch(self, user_id):
 		args = patch_parser.parse_args()
 		user = User.query.filter_by(id=user_id).first()

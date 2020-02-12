@@ -32,6 +32,8 @@ department_fields = {
 }
 
 class Departments(Resource):
+	@jwt_required
+	@roles_required(['administrador', 'agente', 'supervisor'])
 	def get(self, department_id=None):
 		args = get_parser.parse_args()
 		if(not department_id):
@@ -47,7 +49,7 @@ class Departments(Resource):
 		return marshal(department,department_fields)  if not args.type  else data
 	
 	@jwt_required
-	@roles_required('administrador', 'agente')
+	@roles_required(['administrador', 'agente'])
 	def delete(self, department_id):
 		department = Department.query.filter_by(id=department_id).first()
 		if(not department):
@@ -60,7 +62,7 @@ class Departments(Resource):
 		return '', 204
 
 	@jwt_required
-	@roles_required('administrador', 'agente')
+	@roles_required(['administrador', 'agente'])
 	@marshal_with(department_fields)
 	def post(self):
 		args = post_parser.parse_args()
@@ -73,7 +75,7 @@ class Departments(Resource):
 		db.session.commit()
 		return department,201
 	@jwt_required
-	@roles_required('administrador', 'agente')
+	@roles_required(['administrador', 'agente'])
 	@marshal_with(department_fields)
 	def put(self, department_id):
 		args = post_parser.parse_args()

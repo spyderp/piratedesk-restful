@@ -18,7 +18,7 @@ data_fields = {
 
 class States(Resource):
 	@jwt_required
-	@roles_required('administrador', 'agente')
+	@roles_required(['administrador', 'agente', 'supervisor'])
 	@marshal_with(data_fields)
 	def get(self, state_id=None):
 		if(not state_id):
@@ -30,7 +30,7 @@ class States(Resource):
 		return result
 
 	@jwt_required
-	@roles_required('administrador', 'agente')
+	@roles_required(['administrador', 'agente'])
 	def delete(self, state_id):
 		result = State.query.filter_by(id=state_id).first()
 		if(not result):
@@ -40,7 +40,7 @@ class States(Resource):
 		return '', 204
 
 	@jwt_required
-	@roles_required('administrador', 'agente')
+	@roles_required(['administrador', 'agente'])
 	@marshal_with(data_fields)
 	def post(self):
 		args = post_parser.parse_args()
@@ -52,7 +52,7 @@ class States(Resource):
 		return newData,201
 
 	@jwt_required
-	@roles_required('administrador', 'agente')
+	@roles_required(['administrador', 'agente'])
 	@marshal_with(data_fields)
 	def put(self, state_id):
 		args = post_parser.parse_args()
